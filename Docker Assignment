@@ -1,0 +1,46 @@
+                                                               Docker Assignment
+                                                            ------------------------
+Q.Elasticsearch-Filebeat-Kibana stack to monitor Nginx logs
+
+
+sol:
+sudo docker run -d --name elasticsearch -p 9200:9200 elasticsearch:6.8.20   #First of all we are installing elasticsearch
+sudo docker run -d --name kibana -e ELASTICSEARCH_URL="http://172.17.0.1:9200" -p 5601:5601 kibana:6.8.20 #Then we are installing kibana and hosting it on port5601
+sudo docker logs -f kibana                                                             #To check logs of kibana
+sudo docker run -d docker.elastic.co/beats/filebeat:6.8.20                             #To install filebeat
+docker run -v /home/sigmoid/efk_monitoring/logs-store:/var/log/nginx -d --name nginx -p 8080:80 nginx #Installing Nginx and mounting logs on nginx file
+ls       #To check if access log and error log are present
+docker exec -it 276 /bin/bash #to go inside filebeat
+cd /usr/share/filebeat/     #Go in that directory to find filebeat file
+cat filebeat.yml            #Inside We will see filebeat.yml file we have to copy the conent which will be used in filebeat.yml file
+exit                        #To get out of filebeat
+nano filebeat.yml           #To get a file named filebeat.yml inside it we will give all details
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+processors:
+- add_cloud_metadata: ~
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/nginx/access.log
+    - /var/log/nginx/error.log
+output.elasticsearch:
+  hosts: '${ELASTICSEARCH_HOSTS:192.168.1.13:9200}'
+chmod go-w filebeat.yml     #To give permission
+docker rm -f 276  #Removing filebeat because it was unable to run antoher container of filebeat
+docker run -v /home/sigmoid/efk_monitoring/logs-store:/var/log/nginx -v /home/sigmoid/efk_monitoring/logs-store/filebeat.yml:/usr/share/filebeat/filebeat.yml docker.elastic.co/beats/filebeat:6.8.20     #To install filebeat where it is mounted with acess file and log file and filebeat.yml where we have connected it with our ip
+
+
+
+After that go to kibana dashboard via localhost:5601 to view log which can be seen in terminal also.
+
+
+
+
+     
+
+
